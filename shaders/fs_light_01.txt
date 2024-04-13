@@ -1,0 +1,46 @@
+#version 330 core
+
+// Output fragment color
+out vec4 fragColor;
+
+// Input fragment position
+in vec3 FragPos;                                                              // Position of the fragment in world space
+
+// Uniforms for lighting calculations
+uniform vec3 lightPos;                                                        // Position of the light source
+uniform vec3 lightColor;                                                      // Color of the light
+uniform vec3 viewPos;                                                         // Position of the camera/viewer
+
+// Uniforms specific to the spotlight
+uniform bool isSpotlight;                                                     // Flag to check if light is a spotlight
+uniform vec3 spotlightDirection;                                              // Direction the spotlight is facing
+uniform float spotlightCutoff;                                                // Cutoff angle for the spotlight's cone
+uniform float spotlightOuterCutoff;                                           // Outer cutoff angle for soft edge
+
+void main() {
+    // Check if light is a spotlight
+    if (isSpotlight) {
+        // Calculate direction from light position to fragment position
+        vec3 lightDir = normalize(lightPos - FragPos);
+        // Ambient light component (reduced intensity)
+        vec3 ambient = 0.1 * lightColor;
+
+        // Calculate cosine of the angle between spotlight direction and lightDir
+        float theta = dot(normalize(spotlightDirection), lightDir);
+
+        // Check if fragment is within the spotlight cone
+        if (theta > spotlightCutoff) {
+            // Calculate the intensity based on how close to the center of the cone
+            float epsilon = spotlightCutoff - spotlightOuterCutoff;
+            float intensity = clamp((theta - spotlightOuterCutoff) / epsilon, 0.0, 1.0);
+            vec3 spotlightColor = lightColor * intensity;                       // Scale color by intensity
+            fragColor = vec4(spotlightColor, 1.0);                              // Set the fragment color
+        } else {
+            // Fragment is outside the spotlight cone
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0);                               // Render it black
+        }
+    } else {
+        // For non-spotlight, set a default white color
+        fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+}
